@@ -28,63 +28,71 @@
 
     <script type="text/javascript">
       $(function() {
-          // Initializing the SDK
-          var client = new Apigee.Client({
-              orgName:'landonmarder', // Your Apigee.com username for App Services
-              appName:'sandbox' // Your Apigee App Services app name
-          });
+        // Initializing the SDK
+        var client = new Apigee.Client({
+            orgName:'landonmarder', // Your Apigee.com username for App Services
+            appName:'sandbox' // Your Apigee App Services app name
+        });
 
-          // Reading data
-          var items = new Apigee.Collection({ "client":client, "type":"items" });
-          function populateList(items) {
-            $('#bucketlist').empty();
-              while(items.hasNextEntity()) {
-                var item = items.getNextEntity();
-                $('#bucketlist').append('<li><a href="#page-add">' + item.get('title') + '</a></li>');
-              }
-            $('#bucketlist').listview('refresh');
+        // Reading data
+        var items = new Apigee.Collection({
+          "client": client,
+          "type": "items",
+          "qs": {
+            "limit": 25,
+            "ql": "order by title"
           }
+        });
 
-          loadItems();
+        function populateList(items) {
+          $('#bucketlist').empty();
+            while(items.hasNextEntity()) {
+              var item = items.getNextEntity();
+              $('#bucketlist').append('<li><a href="#page-add">' + item.get('title') + '</a></li>');
+            }
+          $('#bucketlist').listview('refresh');
+        }
 
-          function loadItems() {
-              items.fetch(
-                  function(err, data) { // Success
-                      if (err) { // offline
-                          alert("read failed");
-                          items = client.restoreCollection(localStorage.getItem('items'));
-                          items.resetEntityPointer();
-                          populateList(items);
-                      } else {
-                        $('#bucketlist').empty();
-                          populateList(items);
-                          localStorage.setItem('items', items.serialize());
-                      }
-              });
-          }
+        loadItems();
 
-           $('#form-add-item').on('click', '#btn-submit', function() {
-             var item = {
-              "title": $('#form-title').val(),
-              "desc": $('#form-desc').val()
-             }
-             items.addEntity(item, function (err, data){
-              if (err) {
-                alert("write failed");
+        function loadItems() {
+          items.fetch(
+            function(err, data) { // Success
+              if (err) { // offline
+                alert("read failed");
+                items = client.restoreCollection(localStorage.getItem('items'));
+                items.resetEntityPointer();
+                populateList(items);
               } else {
-                $('#form-title').val('');
-                $('#form-desc').val('');
-                loadItems();
-              }
-             });
-           })
+                $('#bucketlist').empty();
+                populateList(items);
+                localStorage.setItem('items', items.serialize());
+            }
+          });
+        }
 
-          // Uncomment the next 4 lines if you want to write data
+         $('#form-add-item').on('click', '#btn-submit', function() {
+          var item = {
+            "title": $('#form-title').val(),
+            "desc": $('#form-desc').val()
+           }
+           items.addEntity(item, function (err, data){
+            if (err) {
+              alert("write failed");
+            } else {
+              $('#form-title').val('');
+              $('#form-desc').val('');
+              loadItems();
+            }
+           });
+         })
 
-          // book = { "title": "the old man and the sea" };
-          // books.addEntity(book, function (error, response) {
-          //  if (error) { alert("write failed");
-          //  } else { alert("write succeeded"); } });
+        // Uncomment the next 4 lines if you want to write data
+
+        // book = { "title": "the old man and the sea" };
+        // books.addEntity(book, function (error, response) {
+        //  if (error) { alert("write failed");
+        //  } else { alert("write succeeded"); } });
       });
     </script>
 </head>
@@ -92,15 +100,15 @@
 <body>
     <section id="page-main" data-role="page">
         <header id="header-mylist" data-role="header" data-position="fixed" data-theme="a">
-            <a id="btn-new" data-role="button" data-icon="plus" data-iconpos="right" data-inline="true" href="#page-add" class="ui-btn-right">New</a>
-            <h1>My Bucket List</h1>
+          <a id="btn-new" data-role="button" data-icon="plus" data-iconpos="right" data-inline="true" data-transition="slide" href="#page-add" class="ui-btn-right">New</a>
+          <h1>My Bucket List</h1>
         </header>
         <!-- /header -->
         <article data-role="content" id="contentlist">
-            <ul data-role="listview" id="bucketlist" class="mybucketlist">
-                <li><a href="#page-add">My first bucketlist item</a></li>
-                <li><a href="#page-add">Another bucklist item</a></li>
-                <li><a href="#page-add">A third thing on my bucketlist</a></li>
+            <ul data-role="listview" data-filter="true" id="bucketlist" class="mybucketlist">
+              <li><a href="#page-add">My first bucketlist item</a></li>
+              <li><a href="#page-add">Another bucklist item</a></li>
+              <li><a href="#page-add">A third thing on my bucketlist</a></li>
             </ul>
         </article>
         <!-- /content -->
