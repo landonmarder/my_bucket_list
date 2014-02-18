@@ -36,17 +36,26 @@
 
             // Reading data
             var items = new Apigee.Collection({ "client":client, "type":"items" });
+            function populateList(items) {
+              $('#bucketlist').empty();
+                while(items.hasNextEntity()) {
+                  var item = items.getNextEntity();
+                  $('#bucketlist').append('<li><a href="#page-add">' + item.get('title') + '</a></li>');
+                }
+              $('#bucketlist').listview('refresh');
+            }
+
             items.fetch(
                 function(err, data) { // Success
-                    if (err) {
+                    if (err) { // offline
                         alert("read failed");
+                        items = client.restoreCollection(localStorage.getItem('items'));
+                        items.resetEntityPointer();
+                        populateList(items);
                     } else {
                       $('#bucketlist').empty();
-                        while(items.hasNextEntity()) {
-                            var item = items.getNextEntity();
-                            $('#bucketlist').append('<li><a href="#page-add">' + item.get('title') + '</a></li>');
-                        }
-                        $('#bucketlist').listview('refresh');
+                        populateList(items);
+                        localStorage.setItem('items', items.serialize());
                     }
                 });
 
