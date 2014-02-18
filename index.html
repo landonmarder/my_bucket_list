@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>My Bucket List</title>
+    <title>jQuery Mobile Page</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/font/roboto-regular.css" />
 
     <!-- jQueryMobileCSS - original with styling -->
-    <!-- <link rel="stylesheet" href="css/jquery.mobile-1.3.1.min.css" /> -->
+    <!-- <link rel="stylesheet" href="css/jquery.mobile-1.3.1.css" /> -->
 
     <!-- jQueryMobileCSS - original without styling -->
     <link rel="stylesheet" href="css/jquery.mobile.structure-1.3.1.min.css" />
@@ -26,89 +26,139 @@
     <script src="js/jquery.mobile-1.3.1.min.js"></script>
     <script src="js/apigee.js"></script>
 
-    <script type="text/javascript">
-      $(function() {
-        // Initializing the SDK
+    <script>
+    $(function() {
+
         var client = new Apigee.Client({
-            orgName:'landonmarder', // Your Apigee.com username for App Services
-            appName:'sandbox' // Your Apigee App Services app name
+            orgName: 'landonmarder', // Your Apigee.com username for App Services
+            appName: 'sandbox' // Your Apigee App Services app name
         });
 
-        // Reading data
         var items = new Apigee.Collection({
-          "client": client,
-          "type": "items",
-          "qs": {
-            "limit": 25,
-            "ql": "order by title"
-          }
+            "client": client,
+            "type": "items",
+            "qs": {
+                "limit": 25,
+                "ql": "order by title"
+            }
         });
 
-        function populateList(items) {
-          $('#bucketlist').empty();
-            while(items.hasNextEntity()) {
-              var item = items.getNextEntity();
-              $('#bucketlist').append('<li><a href="#page-add">' + item.get('title') + '</a></li>');
-            }
-          $('#bucketlist').listview('refresh');
+        navigator.geolocation.getCurrentPosition(geoSuccess, geoFailure);
+
+        function geoSuccess(e) {
+            console.log(e)
+            my_location = e.coords;
+            console.log("lat: " + my_location.latitude);
+            console.log("lon: " + my_location.longitude);
+            items = new Apigee.Collection({
+                "client": client,
+                "type": "items",
+                "qs": {
+                    "limit": 100,
+                    "ql": "location within 1500000 of " + my_location.latitude + "," + my_location.longitude
+                }
+            });
+            loadItems();
         }
 
-        loadItems();
+        function geoFailure() {
+            alert("Unable to access your geolocation");
+
+            // The following is just for testing locally in Chrome
+            // that doesn't support geolocation from a file:// address
+            my_location = {
+                "latitude":"35.123456",
+                "longitude": "-120.987654"
+            }
+            items = new Apigee.Collection({
+                "client": client,
+                "type": "items",
+                "qs": {
+                    "limit": 100,
+                    "ql": "location within 1500000 of " + my_location.latitude + "," + my_location.longitude
+                }
+            });
+            loadItems();
+        }
+
+        function populateList(collection) {
+            $('#bucketlist').empty();
+            while (items.hasNextEntity()) {
+                var item = items.getNextEntity();
+                $('#bucketlist').append('<li><a href="#page-add"><h3>' + item.get('title') + '</h3></a></li>')
+            }
+            $('#bucketlist').listview('refresh');
+        }
+
+        // loadItems();
 
         function loadItems() {
-          items.fetch(
-            function(err, data) { // Success
-              if (err) { // offline
-                alert("read failed");
-                items = client.restoreCollection(localStorage.getItem('items'));
-                items.resetEntityPointer();
-                populateList(items);
-              } else {
-                $('#bucketlist').empty();
-                populateList(items);
-                localStorage.setItem('items', items.serialize());
-            }
-          });
+            items.fetch(
+                function(err, data) { // Success
+                    if (err) {
+                        alert("Read failed - loading offline data");
+                        items = client.restoreCollection(localStorage.getItem('items'));
+                        items.resetEntityPointer();
+                        populateList(items);
+                    } else {
+                        populateList(items);
+                        localStorage.setItem('items', items.serialize());
+                    }
+                }
+            );
         }
 
-         $('#form-add-item').on('click', '#btn-submit', function() {
-          var item = {
-            "title": $('#form-title').val(),
-            "desc": $('#form-desc').val()
-           }
-           items.addEntity(item, function (err, data){
-            if (err) {
-              alert("write failed");
-            } else {
-              $('#form-title').val('');
-              $('#form-desc').val('');
-              loadItems();
+        $('#form-add-item').on('click', '#btn-submit', function() {
+            if ($('#form-title').val() !== '') {
+                var newItem = {
+                    'title': $('#form-title').val(),
+                    'desc': $('#form-desc').val()
+                }
+                items.addEntity(newItem, function(error, response) {
+                    if (error) {
+                        alert("write failed");
+                    } else {
+                        $('#form-title').val('');
+                        $('#form-desc').val('');
+                        loadItems();
+                        window.location = "#page-main";
+                    }
+                });
             }
-           });
-         })
+        });
 
-        // Uncomment the next 4 lines if you want to write data
+        $('form').on('click', '#btn-clear', function() {
+            $('input').val('');
+        });
 
-        // book = { "title": "the old man and the sea" };
-        // books.addEntity(book, function (error, response) {
-        //  if (error) { alert("write failed");
-        //  } else { alert("write succeeded"); } });
-      });
+    });
     </script>
 </head>
 
 <body>
     <section id="page-main" data-role="page">
         <header id="header-mylist" data-role="header" data-position="fixed" data-theme="a">
-          <a id="btn-new" data-role="button" data-icon="plus" data-iconpos="right" data-inline="true" data-transition="slide" href="#page-add" class="ui-btn-right">New</a>
-          <h1>My Bucket List</h1>
+            <a id="btn-new" data-role="button" data-icon="plus" data-iconpos="right" data-inline="true" href="#page-add" class="ui-btn-right" data-theme="c">New</a>
+            <h1>My Bucket List</h1>
         </header>
         <!-- /header -->
         <article data-role="content" id="contentlist">
-            <ul data-role="listview" data-filter="true" id="bucketlist" class="mybucketlist">
-              <li><a href="#page-add">My first bucketlist item</a></li>
-              <li><a href="#page-add">Another bucklist item</a></li>
-              <li><a href="#page-add">A third thing on my bucketlist</a></li>
+            <ul data-role="listview" id="bucketlist" class="mybucketlist" data-filter="true">
+                <li>
+                    <a href="#page-add">
+                        <h3>My first bucketlist item</h3>
+                    </a>
+                </li>
+                <li>
+                    <a href="#page-add">
+                        <h3>Another bucklist item</h3>
+                    </a>
+                </li>
+                <li>
+                    <a href="#page-add">
+                        <h3>A third thing on my bucketlist</h3>
+                    </a>
+                </li>
             </ul>
         </article>
         <!-- /content -->
@@ -130,20 +180,20 @@
         </footer>
         <!-- /footer -->
     </section>
-    <section id="page-add" data-role="page" data-add-back-btn="true" >
+    <section id="page-add" data-role="page" data-add-back-btn="true">
         <header data-role="header" data-theme="a">
             <h1>Add Item</h1>
         </header>
         <!-- /header -->
         <article data-role="content">
             <form action="" id="form-add-item" class="" style="">
-                <label for="form-title">What is on your Bucketlist?</label>
+                <label for="form-title">What's on your Bucket List?</label>
                 <input id="form-title" type="text" placeholder="I am going to..." />
                 <label for="form-desc">More Info:</label>
                 <textarea name="" id="form-desc" placeholder="Add any additional information here..."></textarea>
                 <input id="form-uuid" type="hidden" />
                 <a id="btn-cancel" data-role="button" data-icon="delete" href="#page-main">Cancel</a>
-                <a id="btn-submit" data-role="button" data-icon="plus" href="#page-main">Submit</a>
+                <a id="btn-submit" data-role="button" data-icon="plus">Submit</a>
             </form>
         </article>
         <!-- /content -->
